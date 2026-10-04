@@ -420,12 +420,12 @@
             }, 2200);
 
             // ============ 2. 總瀏覽次數（Firebase + 即時同步） ============
+            // 每次進入網頁或重新整理都會 +1
             const visitCountSpan = document.getElementById('visitCount');
             const FIREBASE_URL = 'https://a-6e95c-default-rtdb.asia-southeast1.firebasedatabase.app';
             const COUNT_PATH = '/total_views.json';
 
-            const SESSION_KEY = 'hyc_session_visited';
-
+            // 2-1 寫入瀏覽次數（本次造訪 +1）
             async function incrementVisitCount() {
                 try {
                     const getResponse = await fetch(FIREBASE_URL + COUNT_PATH);
@@ -454,6 +454,7 @@
                 }
             }
 
+            // 2-2 即時監聽 total_views 的變化（SSE）
             let eventSource = null;
 
             function listenToVisitCount() {
@@ -492,14 +493,10 @@
                 };
             }
 
-            if (!sessionStorage.getItem(SESSION_KEY)) {
-                incrementVisitCount().then(() => {
-                    listenToVisitCount();
-                    sessionStorage.setItem(SESSION_KEY, 'true');
-                });
-            } else {
+            // 2-3 頁面載入時執行：每次進入或重新整理都 +1
+            incrementVisitCount().then(() => {
                 listenToVisitCount();
-            }
+            });
 
             // ============ 3. 點擊複製 LINE ID ============
             const copyBtn = document.getElementById('copyIdBtn');
