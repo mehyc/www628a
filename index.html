@@ -406,7 +406,7 @@
         <div>© hyc分享日常生活開發及維護</div>
         <div>官方LINE ID：<span class="line-id">@377mewyu</span> (歡迎私訊)</div>
         <div class="visitor-counter">
-            <span class="live-dot"></span>👁️ 總瀏覽次數 <span id="visitCount">載入中...</span>
+            <span class="live-dot"></span>📊 總瀏覽次數 <span id="visitCount">載入中...</span>
         </div>
     </div>
 
@@ -426,8 +426,7 @@
             const FIREBASE_URL = 'https://a-6e95c-default-rtdb.asia-southeast1.firebasedatabase.app';
             const COUNT_PATH = '/total_views.json';
 
-            // 使用 localStorage 避免同一瀏覽器重複整理頁面時狂加次數（可選）
-            // 若希望每次重整都 +1，可將此段註解掉
+            // 使用 sessionStorage 避免同一分頁重新整理重複計數
             const SESSION_KEY = 'hyc_session_visited';
 
             // 2-1 寫入瀏覽次數（本次造訪 +1）
@@ -452,7 +451,6 @@
                     visitCountSpan.textContent = newCount;
                 } catch (error) {
                     console.error('瀏覽次數更新錯誤:', error);
-                    // 備援：使用 localStorage 顯示上次數字
                     let fallbackCount = localStorage.getItem('hyc_total_views_fallback');
                     fallbackCount = fallbackCount === null ? 1 : parseInt(fallbackCount, 10) + 1;
                     localStorage.setItem('hyc_total_views_fallback', fallbackCount);
@@ -464,19 +462,15 @@
             let eventSource = null;
 
             function listenToVisitCount() {
-                // 若已有連線，先關閉
                 if (eventSource) {
                     eventSource.close();
                 }
 
-                // Firebase REST API 支援 SSE：加上 ? 或直接使用 .json 端點
                 eventSource = new EventSource(FIREBASE_URL + COUNT_PATH);
 
-                // Firebase SSE 會發送 put 事件（初始值與更新）
                 eventSource.addEventListener('put', (event) => {
                     try {
                         const data = JSON.parse(event.data);
-                        // 格式：{ path: "/", data: 123 }
                         if (data && data.data !== null && data.data !== undefined) {
                             visitCountSpan.textContent = data.data;
                         }
@@ -485,7 +479,6 @@
                     }
                 });
 
-                // patch 事件（部分更新）
                 eventSource.addEventListener('patch', (event) => {
                     try {
                         const data = JSON.parse(event.data);
@@ -497,7 +490,6 @@
                     }
                 });
 
-                // 連線錯誤處理（自動重連）
                 eventSource.onerror = (err) => {
                     console.warn('即時監聽中斷，5 秒後重試...', err);
                     if (eventSource) eventSource.close();
@@ -506,16 +498,12 @@
             }
 
             // 2-3 頁面載入時執行
-            // 檢查本次 session 是否已計數過（避免使用者按 F5 一直刷新）
-            // 若您希望每次重整都 +1，可將 if 判斷移除
             if (!sessionStorage.getItem(SESSION_KEY)) {
-                // 第一次進入此分頁：寫入 +1
                 incrementVisitCount().then(() => {
                     listenToVisitCount();
                     sessionStorage.setItem(SESSION_KEY, 'true');
                 });
             } else {
-                // 同分頁重整：只監聽，不再 +1
                 listenToVisitCount();
             }
 
@@ -535,7 +523,6 @@
                         copyBtn.style.background = '';
                     }, 1500);
                 } catch (err) {
-                    // 備援：傳統複製方式
                     const textArea = document.createElement('textarea');
                     textArea.value = lineIdText;
                     textArea.style.position = 'fixed';
