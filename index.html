@@ -120,6 +120,59 @@
             border: 1px solid #fff2df;
         }
 
+        /* 即時時間顯示 */
+        .realtime-clock {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #5a4a3a;
+            letter-spacing: 0.5px;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 6px 18px;
+            border-radius: 40px;
+            border: 1px solid #f0e1d0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            margin-top: -6px;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        /* 創建日區塊 */
+        .created-info {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #5a4a3a;
+            letter-spacing: 0.4px;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 6px 18px;
+            border-radius: 40px;
+            border: 1px solid #f0e1d0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            margin-top: -8px;
+            margin-bottom: 4px;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s, transform 0.15s, color 0.2s;
+        }
+
+        .created-info:hover {
+            background: rgba(255, 250, 240, 0.9);
+            color: #3d2e1f;
+            transform: scale(1.02);
+        }
+
+        .created-info:active {
+            transform: scale(0.97);
+        }
+
+        .created-info .hint {
+            font-size: 0.72rem;
+            color: #9a8a78;
+            margin-left: 6px;
+            font-weight: 500;
+        }
+
         /* 按鈕容器 */
         .buttons-grid {
             display: flex;
@@ -176,6 +229,16 @@
             background: #fdf0f5;
             color: #5a2e4a;
             border-left: 6px solid #d62976;
+        }
+
+        .btn-tiktok {
+            background: #f2f0f5;
+            color: #1e1b26;
+            border-left: 6px solid #000000;
+        }
+
+        .btn-tiktok span {
+            font-size: 1.2rem;
         }
 
         .btn-ngl {
@@ -348,6 +411,17 @@
                 font-size: 0.95rem;
                 padding: 12px 24px;
             }
+            .realtime-clock {
+                font-size: 0.78rem;
+                padding: 5px 12px;
+            }
+            .created-info {
+                font-size: 0.78rem;
+                padding: 5px 12px;
+            }
+            .created-info .hint {
+                font-size: 0.66rem;
+            }
         }
 
         .avatar {
@@ -370,7 +444,15 @@
 
         <div class="title">hyc分享日常生活</div>
 
-        <!-- 前三個按鈕 -->
+        <!-- 即時時間顯示 -->
+        <div class="realtime-clock" id="realtimeClock">載入中...</div>
+
+        <!-- 創建日顯示（可點擊切換） -->
+        <div class="created-info" id="createdInfo" title="點擊切換顯示格式">
+            載入中...<span class="hint">(點我切換)</span>
+        </div>
+
+        <!-- 社群按鈕 -->
         <div class="buttons-grid">
             <a href="https://www.facebook.com/share/1DxLGuKY98/" class="btn btn-fb" target="_blank" rel="noopener noreferrer">
                 <span>📘</span> fb粉絲團
@@ -378,6 +460,10 @@
 
             <a href="https://www.instagram.com/www628a?stkn=YnQ2NTBuaG44eWpl" class="btn btn-ig" target="_blank" rel="noopener noreferrer">
                 <span>📷</span> ig帳號
+            </a>
+
+            <a href="https://www.tiktok.com/@www628a?_r=1&_t=ZS-9AJhsoxDEzF" class="btn btn-tiktok" target="_blank" rel="noopener noreferrer">
+                <span>🎵</span> TikTok
             </a>
 
             <a href="https://ngl.link/www278278a/pub" class="btn btn-ngl" target="_blank" rel="noopener noreferrer">
@@ -419,13 +505,124 @@
                 mainContent.classList.add('show');
             }, 2200);
 
-            // ============ 2. 總瀏覽次數（Firebase + 即時同步） ============
-            // 每次進入網頁或重新整理都會 +1
+            // ============ 2. 即時時間顯示 ============
+            const clockSpan = document.getElementById('realtimeClock');
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+
+            function pad2(n) {
+                return n < 10 ? '0' + n : '' + n;
+            }
+
+            function updateClock() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = pad2(now.getMonth() + 1);
+                const day = pad2(now.getDate());
+                const hours = pad2(now.getHours());
+                const minutes = pad2(now.getMinutes());
+                const seconds = pad2(now.getSeconds());
+                const weekday = weekdays[now.getDay()];
+
+                clockSpan.textContent = `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}(${weekday})`;
+            }
+
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            // ============ 3. 創建日計算與顯示切換 ============
+            const createdInfo = document.getElementById('createdInfo');
+            const CREATED_DATE = new Date(2026, 9, 1); // 2026年10月1日（月份從 0 開始，9 代表 10 月）
+
+            // 顯示模式：0 = 天數、1 = 週+天、2 = 年月天
+            let displayMode = 0;
+
+            // 計算兩個日期間的天數差（以本地時間的日期為準，忽略時間）
+            function getDaysDiff() {
+                const today = new Date();
+                // 只取日期部分（避免時間影響）
+                const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                const createdDate = new Date(CREATED_DATE.getFullYear(), CREATED_DATE.getMonth(), CREATED_DATE.getDate());
+                const diffMs = todayDate - createdDate;
+                return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            }
+
+            // 計算年月天（以實際日曆為準）
+            function getYearMonthDays() {
+                const today = new Date();
+                const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                const createdDate = new Date(CREATED_DATE.getFullYear(), CREATED_DATE.getMonth(), CREATED_DATE.getDate());
+
+                // 如果今天在創建日之前，直接回傳 0
+                if (todayDate < createdDate) {
+                    return { years: 0, months: 0, days: 0 };
+                }
+
+                let years = todayDate.getFullYear() - createdDate.getFullYear();
+                let months = todayDate.getMonth() - createdDate.getMonth();
+                let days = todayDate.getDate() - createdDate.getDate();
+
+                // 若天數為負，借一個月
+                if (days < 0) {
+                    months--;
+                    // 取得上個月的天數（也就是 todayDate 上一個月）
+                    const prevMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 0);
+                    days += prevMonth.getDate();
+                }
+
+                // 若月數為負，借一年
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+
+                return { years, months, days };
+            }
+
+            // 渲染創建日資訊
+            function renderCreatedInfo() {
+                const totalDays = getDaysDiff();
+
+                if (totalDays < 0) {
+                    createdInfo.innerHTML = `創建日：2026年10月01日（尚未到來）<span class="hint">(點我切換)</span>`;
+                    return;
+                }
+
+                let text = '';
+
+                if (displayMode === 0) {
+                    // 顯示天數
+                    text = `創建日：2026年10月01日 ｜ 已創建 ${totalDays} 天`;
+                } else if (displayMode === 1) {
+                    // 顯示週 + 天
+                    const weeks = Math.floor(totalDays / 7);
+                    const remainingDays = totalDays % 7;
+                    text = `創建日：2026年10月01日 ｜ 已創建 ${weeks} 週 ${remainingDays} 天`;
+                } else {
+                    // 顯示年 + 月 + 天
+                    const ymd = getYearMonthDays();
+                    text = `創建日：2026年10月01日 ｜ 已創建 ${ymd.years} 年 ${ymd.months} 月 ${ymd.days} 天`;
+                }
+
+                createdInfo.innerHTML = `${text}<span class="hint">(點我切換)</span>`;
+            }
+
+            // 初始渲染
+            renderCreatedInfo();
+
+            // 每秒更新（讓天數即時跟著日期變化）
+            setInterval(renderCreatedInfo, 1000);
+
+            // 點擊切換顯示模式
+            createdInfo.addEventListener('click', () => {
+                displayMode = (displayMode + 1) % 3;
+                renderCreatedInfo();
+            });
+
+            // ============ 4. 總瀏覽次數（Firebase + 即時同步） ============
             const visitCountSpan = document.getElementById('visitCount');
             const FIREBASE_URL = 'https://a-6e95c-default-rtdb.asia-southeast1.firebasedatabase.app';
             const COUNT_PATH = '/total_views.json';
 
-            // 2-1 寫入瀏覽次數（本次造訪 +1）
             async function incrementVisitCount() {
                 try {
                     const getResponse = await fetch(FIREBASE_URL + COUNT_PATH);
@@ -454,7 +651,6 @@
                 }
             }
 
-            // 2-2 即時監聽 total_views 的變化（SSE）
             let eventSource = null;
 
             function listenToVisitCount() {
@@ -493,12 +689,11 @@
                 };
             }
 
-            // 2-3 頁面載入時執行：每次進入或重新整理都 +1
             incrementVisitCount().then(() => {
                 listenToVisitCount();
             });
 
-            // ============ 3. 點擊複製 LINE ID ============
+            // ============ 5. 點擊複製 LINE ID ============
             const copyBtn = document.getElementById('copyIdBtn');
             const lineIdText = '@377mewyu';
 
