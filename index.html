@@ -490,7 +490,7 @@
         <div>© hyc分享日常生活開發及維護</div>
         <div>官方LINE ID：<span class="line-id">@377mewyu</span> (歡迎私訊)</div>
         <div class="visitor-counter">
-            <span class="live-dot"></span>📊 總瀏覽次數 <span id="visitCount">載入中...</span>
+            <span class="live-dot"></span>📊 總瀏覽次數：<span id="visitCount">載入中...</span>
         </div>
     </div>
 
@@ -531,28 +531,23 @@
 
             // ============ 3. 創建日計算與顯示切換 ============
             const createdInfo = document.getElementById('createdInfo');
-            const CREATED_DATE = new Date(2026, 9, 1); // 2026年10月1日（月份從 0 開始，9 代表 10 月）
+            const CREATED_DATE = new Date(2026, 9, 1); // 2026年10月1日
 
-            // 顯示模式：0 = 天數、1 = 週+天、2 = 年月天
             let displayMode = 0;
 
-            // 計算兩個日期間的天數差（以本地時間的日期為準，忽略時間）
             function getDaysDiff() {
                 const today = new Date();
-                // 只取日期部分（避免時間影響）
                 const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                 const createdDate = new Date(CREATED_DATE.getFullYear(), CREATED_DATE.getMonth(), CREATED_DATE.getDate());
                 const diffMs = todayDate - createdDate;
                 return Math.floor(diffMs / (1000 * 60 * 60 * 24));
             }
 
-            // 計算年月天（以實際日曆為準）
             function getYearMonthDays() {
                 const today = new Date();
                 const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
                 const createdDate = new Date(CREATED_DATE.getFullYear(), CREATED_DATE.getMonth(), CREATED_DATE.getDate());
 
-                // 如果今天在創建日之前，直接回傳 0
                 if (todayDate < createdDate) {
                     return { years: 0, months: 0, days: 0 };
                 }
@@ -561,15 +556,12 @@
                 let months = todayDate.getMonth() - createdDate.getMonth();
                 let days = todayDate.getDate() - createdDate.getDate();
 
-                // 若天數為負，借一個月
                 if (days < 0) {
                     months--;
-                    // 取得上個月的天數（也就是 todayDate 上一個月）
                     const prevMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 0);
                     days += prevMonth.getDate();
                 }
 
-                // 若月數為負，借一年
                 if (months < 0) {
                     years--;
                     months += 12;
@@ -578,7 +570,6 @@
                 return { years, months, days };
             }
 
-            // 渲染創建日資訊
             function renderCreatedInfo() {
                 const totalDays = getDaysDiff();
 
@@ -590,15 +581,12 @@
                 let text = '';
 
                 if (displayMode === 0) {
-                    // 顯示天數
                     text = `創建日：2026年10月01日 ｜ 已創建 ${totalDays} 天`;
                 } else if (displayMode === 1) {
-                    // 顯示週 + 天
                     const weeks = Math.floor(totalDays / 7);
                     const remainingDays = totalDays % 7;
                     text = `創建日：2026年10月01日 ｜ 已創建 ${weeks} 週 ${remainingDays} 天`;
                 } else {
-                    // 顯示年 + 月 + 天
                     const ymd = getYearMonthDays();
                     text = `創建日：2026年10月01日 ｜ 已創建 ${ymd.years} 年 ${ymd.months} 月 ${ymd.days} 天`;
                 }
@@ -606,13 +594,9 @@
                 createdInfo.innerHTML = `${text}<span class="hint">(點我切換)</span>`;
             }
 
-            // 初始渲染
             renderCreatedInfo();
-
-            // 每秒更新（讓天數即時跟著日期變化）
             setInterval(renderCreatedInfo, 1000);
 
-            // 點擊切換顯示模式
             createdInfo.addEventListener('click', () => {
                 displayMode = (displayMode + 1) % 3;
                 renderCreatedInfo();
